@@ -85,8 +85,10 @@ int main(void)
 
 			for (f = 0; f < 2; f++) {
 				void *(*fn)(void *, int, size_t) = set_fn[f];
-				double t0 = now();
+				double t0;
 
+				touch(b, 65536);	/* nothing of a is left in the cache */
+				t0 = now();
 				for (i = 0; i < reps; i++)
 					fn(a + off, (int)i, n);
 				t[f] = (now() - t0) / reps * 1e9;

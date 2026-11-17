@@ -5,18 +5,19 @@
  *	void *memset(void *dst, int c, size_t n)
  *
  * musl has no memset for ARM in assembly and its C version stores a word
- * at a time. Here: bytes up to a word boundary, a word up to an 8-byte
- * boundary, then (64 bytes or more) pairs of words up to a cache line and
- * 32 bytes per store (one STM of eight registers), then eight bytes per
- * store, then the last word and bytes. 4 to 15 bytes are covered by up to
- * four word stores that overlap, from both ends; fewer leave at once.
+ * at a time. Here: bytes up to a word boundary, then (64 bytes or more)
+ * a word and pairs of words up to a cache line and 32 bytes per store (one
+ * STM of eight registers), then eight bytes per store, then the last word
+ * and bytes. 4 to 15 bytes are covered by up to four word stores that
+ * overlap, from both ends; fewer leave at once.
  *
  * Why the alignment: this CPU does not bring a line into the cache on a
  * store, so a fill of memory that is not cached goes to the bus as it is
  * written. Measured on the iPod, per byte of a long fill, by where the
- * 32-byte stores start within a line: see README.md. A store that starts
- * on the line is one whole burst; the worst case, 4 bytes after it, takes
- * about two thirds longer.
+ * 32-byte stores start within a line: 1.2 ns on the line, 1.8 ns at 16
+ * bytes into it, 2.0 at 8, 2.6 at 12, 3.0 at 4 (musl's C: 5.8 to 6.2).
+ * Fills under 64 bytes are mostly of cached memory and are not aligned
+ * beyond the word: there the extra steps cost more than they bring.
  *
  * Built as n72_memset for the tests and the benchmark; with
  * -DN72_STRING_LIBC the name is memset (musl: src/string/arm/memset.S).
@@ -54,19 +55,18 @@ NAME:
 	strbge	r1, [ip], #1
 	strbgt	r1, [ip], #1
 1:
-	@ a word to an 8-byte boundary
-	tst	ip, #4
-	strne	r1, [ip], #4
-	subne	r2, r2, #4
 	mov	r3, r1
 	cmp	r2, #64
 	blo	.Lwords
 
-	@ pairs of words to a cache line boundary: 0, 8, 16 or 24 bytes
+	@ to a cache line boundary, 0 .. 28 bytes: a word, which puts the
+	@ pairs after it on 8-byte boundaries, then pairs of words
 	push	{r4, r5, r6, r7, r8, lr}
 	rsb	r4, ip, #0
-	and	r4, r4, #24
-	sub	r2, r2, r4		@ 40 or more left
+	and	r4, r4, #28
+	sub	r2, r2, r4		@ 36 or more left
+	tst	r4, #4
+	strne	r1, [ip], #4
 	tst	r4, #8
 	stmiane	ip!, {r1, r3}
 	tst	r4, #16
