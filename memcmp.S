@@ -30,6 +30,17 @@
 	.type	NAME, %function
 	.p2align 5
 NAME:
+	@ the first bytes: blocks that differ at once are common (keys, names),
+	@ and leave here without touching the stack
+	cmp	r2, #0
+	moveq	r0, #0
+	bxeq	lr
+	ldrb	r3, [r0]
+	ldrb	ip, [r1]
+	subs	r3, r3, ip
+	movne	r0, r3
+	bxne	lr
+
 	push	{r4, lr}
 	cmp	r2, #8
 	blo	.Lbytes
@@ -59,8 +70,6 @@ NAME:
 	b	4f
 
 .Lbytes:
-	cmp	r2, #0
-	beq	.Lequal
 4:	ldrb	r4, [r0], #1
 	ldrb	lr, [r1], #1
 	subs	ip, r4, lr

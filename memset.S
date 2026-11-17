@@ -7,8 +7,8 @@
  * musl has no memset for ARM in assembly and its C version stores a word
  * at a time. Here: bytes up to a word boundary, then 32 bytes per store
  * (one STM of eight registers), then eight bytes per store, then the last
- * word and bytes. Fewer than 16 bytes are covered by up to four word stores
- * that overlap, from both ends.
+ * word and bytes. 4 to 15 bytes are covered by up to four word stores that
+ * overlap, from both ends; fewer leave at once.
  *
  * Built as n72_memset for the tests and the benchmark; with
  * -DN72_STRING_LIBC the name is memset (musl: src/string/arm/memset.S).
@@ -27,7 +27,9 @@
 	.type	NAME, %function
 	.p2align 5
 NAME:
+	cmp	r2, #4
 	and	r1, r1, #255
+	blo	.Ltiny			@ 0 .. 3 bytes: the shortest way out
 	mov	ip, r0			@ ip writes; r0 is returned as it came
 	cmp	r2, #16
 	orr	r1, r1, r1, lsl #8
@@ -80,10 +82,8 @@ NAME:
 	bx	lr
 
 .Lshort:
-	@ 0 .. 15 bytes, any alignment: words that overlap, from both ends
+	@ 4 .. 15 bytes, any alignment: words that overlap, from both ends
 	@ (ARMv6 stores a word at any address; Linux lets user space)
-	cmp	r2, #4
-	blo	6f
 	add	r3, ip, r2		@ the end
 	cmp	r2, #8
 	str	r1, [ip]
@@ -92,13 +92,15 @@ NAME:
 	str	r1, [ip, #4]
 	str	r1, [r3, #-8]
 	bx	lr			@ 8 .. 15: four words cover it
-6:	@ 0 .. 3 bytes
+
+.Ltiny:
+	@ 0 .. 3 bytes
 	cmp	r2, #1
 	bxlo	lr
-	strb	r1, [ip]
+	strb	r1, [r0]
 	bxeq	lr
-	strb	r1, [ip, #1]
+	strb	r1, [r0, #1]
 	cmp	r2, #3
-	strbeq	r1, [ip, #2]
+	strbeq	r1, [r0, #2]
 	bx	lr
 	.size	NAME, . - NAME
