@@ -1,0 +1,34 @@
+PASS
+0.23 0.06 0.02 1/69 8050
+6f4bf2102a19e3ed267bdcfa8b561d2f  /root/musl-test/ld-musl-armhf.so.1
+c202f66d6006cb1e03b727ea8b661bef  /lib/ld-musl-armhf.so.1
+== busybox applets, each in the process the loader started
+24 command lines compared
+== other programs: the same output with both
+apk --version: apk-tools 3.0.9-r0, compiled for armhf. [1 lines, exit 0]
+apk info: alpine-base [161 lines, exit 0]
+apk info -L musl: musl-1.2.6-r3 contains: [3 lines, exit 0]
+dropbear -V: Dropbear v2026.91 [1 lines, exit 0]
+wpa_supplicant -v: wpa_supplicant v2.11 [2 lines, exit 0]
+bluetoothd -v: 5.86 [1 lines, exit 0]
+bluealsa -V: v4.3.1 [1 lines, exit 0]
+amixer scontrols: Simple mixer control 'Headphone',0 [5 lines, exit 0]
+gst-inspect version: gst-inspect-1.0 version 1.28.3 [3 lines, exit 0]
+python3: 062af9ccd890ba3d067ca7150278bcc420069bd82f6e41161029303dfd6d661e 1024000 4000 2851522990 [1, 2, 3] {"a": [1, 2 [1 lines, exit 0]
+strace -V: strace -- version 6.19 [6 lines, exit 0]
+iw list: Wiphy phy0 [93 lines, exit 0]
+== the exhaustive test against the library's own memset and memcmp
+memset: 198845 checks
+memcmp: 6487601 checks
+6686446 checks, 0 failures
+== RetroArch's core benchmark (no display, no sound): every frame's checksum must match
+old exit 0
+new exit 0
+old: snes9x2005_libretro.so        17.91 ms/frame wall  17.06 cpu  (600 frames drawn of 600, 320813 samples)
+frames checksum 78bbb34826d1f8c0
+new: snes9x2005_libretro.so        16.48 ms/frame wall  16.47 cpu  (600 frames drawn of 600, 320813 samples)
+frames checksum 78bbb34826d1f8c0
+== the benchmark of the final routines (static)
+bench exit 0
+1.11 0.46 0.18 1/66 8336
+PASS
