@@ -48,5 +48,8 @@ within the line.
 
 Meant to go into Alpine's musl package for the N72 as
 src/string/arm/memset.S and memcmp.S (build with -DN72_STRING_LIBC for the
-libc names): n72-alpine/aports/musl. deploy/libc-restore.c is the static
-tool that puts the old library back if a new one does not work.
+libc names): n72-alpine/aports/musl (musl-1.2.6-r50). Installed after
+deploy/check-libc.sh (off-device) and deploy/preflight-device.sh (on the
+single programs). deploy/libc-restore.c is the static tool that puts the old
+library back if a new one does not work; its guard mode was running during
+the install and was not needed.
