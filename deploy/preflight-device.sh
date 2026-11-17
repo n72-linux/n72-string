@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # preflight-device.sh: on the iPod, run programs with the new C library as their loader and
 # compare with the installed one. Nothing in /lib changes. Expects in /root/musl-test:
 # ld-musl-armhf.so.1 (the new library) and test_libc (test.c built against the libc names).
@@ -77,15 +78,18 @@ echo "== the exhaustive test against the library's own memset and memcmp"
 t=$($N ./test_libc 2>&1 | tail -3); echo "$t"
 case "$t" in *"6686446 checks, 0 failures") ;; *) echo "FAIL: test_libc with the new library"; fail=1 ;; esac
 
-echo "== RetroArch's core benchmark (no display, no sound): the two outputs"
+echo "== RetroArch's core benchmark (no display, no sound): every frame's checksum must match"
 R=/root/retro
-if [ -x $R/retrobench ]; then
-	export LD_LIBRARY_PATH=$R/lib
-	$O $R/retrobench $R/cores/snes9x2005_libretro.so $R/games/snes/gothicvania.sfc 600 100 > retro-old.out 2>&1; echo "old exit $?"
-	$N $R/retrobench $R/cores/snes9x2005_libretro.so $R/games/snes/gothicvania.sfc 600 100 > retro-new.out 2>&1; echo "new exit $?"
-	unset LD_LIBRARY_PATH
+RB=$R/retrobench; [ -x $D/retrobench ] && RB=$D/retrobench	# a build that knows RETROBENCH_CRC
+if [ -x $RB ]; then
+	export LD_LIBRARY_PATH=$R/lib RETROBENCH_CRC=1
+	$O $RB $R/cores/snes9x2005_libretro.so $R/games/snes/gothicvania.sfc 600 100 > retro-old.out 2>&1; echo "old exit $?"
+	$N $RB $R/cores/snes9x2005_libretro.so $R/games/snes/gothicvania.sfc 600 100 > retro-new.out 2>&1; echo "new exit $?"
+	unset LD_LIBRARY_PATH RETROBENCH_CRC
 	echo "old: $(tail -3 retro-old.out)"
 	echo "new: $(tail -3 retro-new.out)"
+	ca=$(grep 'frames checksum' retro-old.out); cb=$(grep 'frames checksum' retro-new.out)
+	if [ -z "$ca" ] || [ "$ca" != "$cb" ]; then echo "FAIL: retrobench frame checksums: old [$ca] new [$cb]"; fail=1; fi
 fi
 
 if [ -x /root/n72hle-test/strbench.final ]; then
