@@ -37,7 +37,9 @@ int main(void)
 {
 	static const size_t sizes[] = { 1, 3, 4, 7, 8, 12, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 16384, 65536, 262144 };
 	static const size_t aligns[] = { 0, 1, 3 };
-	static uint8_t a[262144 + 64], b[262144 + 64];
+	/* on a cache line, so that "+align" is the block's place within a line whatever the link put before it */
+	static uint8_t a[262144 + 64] __attribute__((aligned(64))), b[262144 + 64] __attribute__((aligned(64)));
+	size_t off;
 	size_t s, al, f, warm;
 
 	/*
@@ -71,6 +73,26 @@ int main(void)
 				printf("memset  %6zu+%zu %5s %11.1f %11.1f %6.2f\n", n, aligns[al], warm ? "warm" : "cold",
 				       t[0], t[1], t[0] / t[1]);
 			}
+	/*
+	 * memset to memory that is not cached, by where the block starts
+	 * within a cache line (32 bytes): the stores go to the bus as they
+	 * are written, and how they fall on the lines decides the time.
+	 */
+	for (s = 0; s < 2; s++)
+		for (off = 0; off < 32; off += off == 0 ? 1 : off == 1 ? 3 : 4) {
+			size_t n = s ? 65536 : 4096, reps = 30000000 / (n + 40) / 2, i;
+			double t[2];
+
+			for (f = 0; f < 2; f++) {
+				void *(*fn)(void *, int, size_t) = set_fn[f];
+				double t0 = now();
+
+				for (i = 0; i < reps; i++)
+					fn(a + off, (int)i, n);
+				t[f] = (now() - t0) / reps * 1e9;
+			}
+			printf("memset  %6zu@%-2zu %4s %11.1f %11.1f %6.2f\n", n, off, "line", t[0], t[1], t[0] / t[1]);
+		}
 	/*
 	 * memcmp of equal blocks (the whole length is compared), and of blocks
 	 * that differ in their first byte (the cost of the call itself).
@@ -109,6 +131,17 @@ int main(void)
 			acc += fn(a, b, 256);
 		sink = acc;
 		printf("memcmp  first byte differs, %s: %.1f ns\n", f ? "n72" : "libc", (now() - t0) / reps * 1e9);
+	}
+	for (f = 0; f < 2; f++) {
+		int (*fn)(const void *, const void *, size_t) = cmp_fn[f];
+		size_t i, reps = 2000000;
+		double t0 = now();
+		int acc = 0;
+
+		for (i = 0; i < reps; i++)
+			acc += fn(a, b, 3);
+		sink = acc;
+		printf("memcmp  first byte differs, 3 bytes, %s: %.1f ns\n", f ? "n72" : "libc", (now() - t0) / reps * 1e9);
 	}
 	return 0;
 }
