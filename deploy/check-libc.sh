@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # check-libc.sh NEW.apk OLD.apk: off-device checks of a musl package that carries memset.S and memcmp.S.
 # Run in the n72-alpine container (cross tools and qemu-arm), from the n72-string directory:
-#   docker run --rm -v ~/n72-linux:/work n72-alpine sh -c 'cd /work/n72-string && sh deploy/check-libc.sh NEW OLD'
+#   docker run --rm -v "$PWD/..":/work n72-alpine sh -c 'cd /work/n72-string && sh deploy/check-libc.sh NEW OLD'
 # Leaves the two libraries in build/libc-new and build/libc-old.
 set -e
 NEW=${1:?usage: check-libc.sh NEW.apk OLD.apk}; OLD=${2:?}
